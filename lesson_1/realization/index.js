@@ -41,80 +41,59 @@ const SERVER_PORT = 8080;
 require('http').createServer(function(req, res) {
 
   let pathname = decodeURI(url.parse(req.url).pathname);
-  console.log(req)
+
   switch(req.method) {
   case 'GET':
-	if (pathname == '/') {
-	  // отдачу файлов следует переделать "правильно", через потоки, с нормальной обработкой ошибок
-	  fs.readFile(__dirname + '/public/index.html', (err, content) => {
-		if (err) throw err;
-		res.setHeader('Content-Type', 'text/html;charset=utf-8');
-		res.end(content);
-	  });
-	  return;
-	} 
+    if (pathname == '/') {
+      // отдачу файлов следует переделать "правильно", через потоки, с нормальной обработкой ошибок
+      fs.readFile(__dirname + '/public/index.html', (err, content) => {
+        if (err) throw err;
+        res.setHeader('Content-Type', 'text/html;charset=utf-8');
+        res.end(content);
+      });
+      return;
+    }
 
-	const loader = Filer.init({
-		action: Filer.ACTIONS.LOAD,
-		url: req.url,
-		fileLength: parseInt(req.headers['content-length'], 10),
-		end: res.end.bind(res)
-	});
+    const loader = Files.init({
+      action: Filer.ACTIONS.LOAD,
+      url: req.url,
+      fileLength: parseInt(req.headers['content-length'], 10),
+      end: res.end.bind(res)
+    });
 
+    res.setHeader('Content-Type', loader.getContentTypeHeader());
 
-	loader.getStream().pipe(res);
+    break;
+  case 'POST':
+    const uploader = Filer.init({
+      action: Filer.ACTIONS.UPLOAD,
+      url: req.url,
+      fileLength: parseInt(req.headers['content-length'], 10),
+      end: res.end.bind(res)
+    })
+  
+    /**
+      Начитка данных
+    */
+    req.on('data', (data) => {
+      uploader.addFragment(data);
+    });
 
-	req.on('close', () => {
-	  loader.close();
-	});
+    /**
+      Окончание загрузки файла или щакрытие соединения
+    */
+    req.on('close', () => {
+      uploader.close()
+    });
 
-	req.on('end', () => {
-	  loader.close();
-	});
-
-	break;
-
-	case 'POST':
-		const uploader = Filer.init({
-			action: Filer.ACTIONS.UPLOAD,
-			url: req.url,
-			fileLength: parseInt(req.headers['content-length'], 10),
-			end: res.end.bind(res)
-		});
-
-		/**
-		  Начитка данных
-		*/
-		req.on('data', (data) => {
-		  uploader.addFragment(data);
-		});
-
-		/**
-		  Окончание загрузки файла или щакрытие соединения
-		*/
-		req.on('close', () => {
-		  uploader.close()
-		});
-
-		req.on('end', () => {
-		  uploader.close()
-		});
-
-		break;
-	case 'DELETE':
-		const remove = Filer.init({
-			action: Filer.ACTIONS.REMOVE,
-			url: req.url,
-			fileLength: parseInt(req.headers['content-length'], 10),
-			end: res.end.bind(res)
-		});
-
-
-		break;
+    req.on('end', () => {
+      uploader.close()
+    });
+    break;
 
   default:
-	res.statusCode = 502;
-	res.end("Not implemented");
+    res.statusCode = 502;
+    res.end("Not implemented");
   }
 
 }).listen(SERVER_PORT);
