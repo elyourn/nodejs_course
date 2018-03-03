@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const mime = require('mime-types');
 const SETTINGS = require('settings');
 
 const load = {
@@ -25,6 +26,9 @@ const fileLoad = {
 	    this.readStream().closeHandler(end).errorHandler(end);
 
 	    return this;
+	},
+	getContentTypeHeader: function getContentTypeHeader () {
+		return mime.lookup(load.filePath);
 	},
 	readStream: function addFragment () {
 		load.stream.on('readable', function() {

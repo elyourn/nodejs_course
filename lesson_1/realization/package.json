@@ -8,5 +8,8 @@
     "start": "node --inspect index.js NODE_PATH=./:./modules"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "mime-types": "^2.1.18"
+  }
 }
